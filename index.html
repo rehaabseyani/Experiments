@@ -1,0 +1,1310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Quest Log — Daily Focus</title>
+<style>
+/* ─── RESET ──────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+:root {
+  --bg:          #05050f;
+  --glass:       rgba(255,255,255,0.055);
+  --glass-b:     rgba(255,255,255,0.11);
+  --glass-s:     0 8px 40px rgba(0,0,0,0.5);
+  --gold:        #c9a227;
+  --gold-g:      rgba(201,162,39,0.28);
+  --purple:      #7b2fff;
+  --purple-g:    rgba(123,47,255,0.28);
+  --cyan:        #00e5ff;
+  --cyan-g:      rgba(0,229,255,0.2);
+  --green:       #00e676;
+  --green-g:     rgba(0,230,118,0.28);
+  --red:         #ff4455;
+  --tx:          #f0f0ff;
+  --tx2:         rgba(240,240,255,0.55);
+  --tx3:         rgba(240,240,255,0.28);
+  --r-lg:        18px;
+  --r-md:        11px;
+  --r-sm:        7px;
+  --ease:        all 0.22s cubic-bezier(0.4,0,0.2,1);
+}
+
+html, body {
+  height: 100%;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Segoe UI', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--tx);
+  overflow: hidden;
+  user-select: none;
+}
+
+/* ─── LAYERED BACKGROUND ───────────────────────────── */
+body::before {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 55% 45% at 15% 15%, rgba(123,47,255,0.14) 0%, transparent 70%),
+    radial-gradient(ellipse 50% 55% at 85% 80%, rgba(0,229,255,0.07) 0%, transparent 70%),
+    radial-gradient(ellipse 35% 35% at 50% 45%, rgba(201,162,39,0.05) 0%, transparent 70%),
+    linear-gradient(150deg, #06060f 0%, #0b0b1e 50%, #080810 100%);
+  pointer-events: none;
+}
+
+body::after {
+  content: '';
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,0.014) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,0.014) 1px, transparent 1px);
+  background-size: 44px 44px;
+  pointer-events: none;
+}
+
+canvas#stars { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+/* ─── APP WRAPPER ──────────────────────────────────── */
+#app {
+  position: relative; z-index: 1;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow: hidden;
+}
+
+/* ─── SCREENS ──────────────────────────────────────── */
+.screen { display: none; width: 100%; max-width: 800px; flex-direction: column; gap: 14px; }
+.screen.active { display: flex; animation: fadeUp 0.38s cubic-bezier(0.4,0,0.2,1); }
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(14px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ─── GLASS CARD ───────────────────────────────────── */
+.glass {
+  background: var(--glass);
+  border: 1px solid var(--glass-b);
+  border-radius: var(--r-lg);
+  backdrop-filter: blur(28px) saturate(180%);
+  -webkit-backdrop-filter: blur(28px) saturate(180%);
+  box-shadow: var(--glass-s), inset 0 1px 0 rgba(255,255,255,0.09);
+}
+
+/* ─── TYPOGRAPHY ───────────────────────────────────── */
+.label {
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.22em; text-transform: uppercase;
+  color: var(--tx3);
+}
+.gradient-text {
+  background: linear-gradient(90deg, var(--gold) 0%, var(--cyan) 100%);
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── BUTTONS ──────────────────────────────────────── */
+.btn {
+  display: inline-flex; align-items: center; justify-content: center;
+  gap: 8px; padding: 14px 28px; border-radius: var(--r-md);
+  font-size: 13px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; cursor: pointer; border: none;
+  transition: var(--ease); position: relative; overflow: hidden;
+  font-family: inherit;
+}
+.btn::after {
+  content: ''; position: absolute; inset: 0;
+  background: rgba(255,255,255,0); transition: background 0.15s;
+}
+.btn:hover::after { background: rgba(255,255,255,0.08); }
+.btn:active { transform: scale(0.965); }
+.btn:active::after { background: rgba(255,255,255,0.03); }
+.btn:disabled { opacity: 0.38; cursor: not-allowed; transform: none !important; }
+
+.btn-gold {
+  background: linear-gradient(135deg, #b8901e 0%, #e8c048 50%, #c9a227 100%);
+  color: #1a0e00;
+  box-shadow: 0 0 24px var(--gold-g), 0 4px 14px rgba(0,0,0,0.35),
+              inset 0 1px 0 rgba(255,255,255,0.35);
+}
+.btn-gold:hover { box-shadow: 0 0 42px var(--gold-g), 0 0 80px var(--gold-g), 0 4px 18px rgba(0,0,0,0.4), inset 0 1px 0 rgba(255,255,255,0.35); transform: translateY(-1px); }
+
+.btn-ghost {
+  background: var(--glass); color: var(--tx);
+  border: 1px solid var(--glass-b); box-shadow: var(--glass-s);
+}
+.btn-ghost:hover { border-color: rgba(255,255,255,0.24); }
+
+.btn-green {
+  background: linear-gradient(135deg, #00a846, var(--green));
+  color: #001a0a;
+  box-shadow: 0 0 22px var(--green-g), inset 0 1px 0 rgba(255,255,255,0.3);
+}
+.btn-green:hover { box-shadow: 0 0 44px var(--green-g); transform: translateY(-1px); }
+
+.btn-red {
+  background: rgba(255,68,85,0.12); color: #ff7788;
+  border: 1px solid rgba(255,68,85,0.28);
+}
+.btn-red:hover { background: rgba(255,68,85,0.22); }
+
+.btn-purple {
+  background: linear-gradient(135deg, #5500cc, var(--purple));
+  color: #fff;
+  box-shadow: 0 0 22px var(--purple-g), inset 0 1px 0 rgba(255,255,255,0.2);
+}
+.btn-purple:hover { box-shadow: 0 0 44px var(--purple-g); transform: translateY(-1px); }
+
+/* ─── FORM INPUTS ──────────────────────────────────── */
+input[type="text"], select {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid var(--glass-b);
+  border-radius: var(--r-sm);
+  color: var(--tx); padding: 13px 16px;
+  font-size: 14px; font-family: inherit;
+  outline: none; transition: var(--ease); width: 100%;
+}
+input[type="text"]::placeholder { color: var(--tx3); }
+input[type="text"]:focus, select:focus {
+  border-color: var(--gold);
+  box-shadow: 0 0 0 3px var(--gold-g);
+  background: rgba(255,255,255,0.09);
+}
+select option { background: #12102a; }
+
+/* ─── HEADER BAR ───────────────────────────────────── */
+.topbar {
+  display: flex; align-items: center;
+  justify-content: space-between; padding: 14px 22px;
+}
+.logo {
+  font-size: 17px; font-weight: 900; letter-spacing: 0.12em;
+}
+.stat-pill {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 14px; border-radius: 20px;
+  background: rgba(255,255,255,0.06);
+  border: 1px solid var(--glass-b);
+  font-size: 12px; font-weight: 700;
+}
+.stat-pill .val { color: var(--gold); }
+
+/* ─── PRIORITY STARS ───────────────────────────────── */
+.stars-row { display: flex; gap: 6px; }
+.star {
+  width: 30px; height: 30px; cursor: pointer;
+  color: var(--tx3); transition: var(--ease);
+  font-size: 22px; line-height: 30px; text-align: center;
+}
+.star.on { color: var(--gold); text-shadow: 0 0 10px var(--gold-g); }
+.star:hover { transform: scale(1.25); }
+
+/* ─── TASK ITEMS ───────────────────────────────────── */
+.task-item {
+  display: flex; align-items: center; gap: 12px;
+  padding: 13px 16px; border-radius: var(--r-md);
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--glass-b);
+  transition: var(--ease); cursor: grab;
+}
+.task-item:hover { background: rgba(255,255,255,0.08); border-color: rgba(255,255,255,0.2); }
+.task-item.dragging { opacity: 0.45; cursor: grabbing; }
+.task-item.drag-over { border-color: var(--gold); box-shadow: 0 0 12px var(--gold-g); }
+
+.task-rank {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  background: linear-gradient(135deg, #5a00cc, var(--purple));
+  display: flex; align-items: center; justify-content: center;
+  font-size: 12px; font-weight: 800;
+  box-shadow: 0 0 10px var(--purple-g);
+}
+.task-info { flex: 1; min-width: 0; }
+.task-name { font-size: 14px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.task-meta { font-size: 11px; color: var(--tx2); margin-top: 3px; }
+.time-badge {
+  padding: 4px 10px; border-radius: 20px; flex-shrink: 0;
+  background: rgba(201,162,39,0.14); border: 1px solid rgba(201,162,39,0.28);
+  font-size: 11px; font-weight: 700; color: var(--gold); letter-spacing: 0.05em;
+}
+.del-btn {
+  width: 28px; height: 28px; border-radius: 50%; flex-shrink: 0;
+  background: transparent; border: 1px solid rgba(255,68,85,0.28);
+  color: rgba(255,68,85,0.55); cursor: pointer; font-size: 13px;
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--ease);
+}
+.del-btn:hover { background: rgba(255,68,85,0.15); color: #ff7788; }
+
+.task-scroll {
+  max-height: 270px; overflow-y: auto;
+  display: flex; flex-direction: column; gap: 8px;
+  padding-right: 4px;
+}
+.task-scroll::-webkit-scrollbar { width: 3px; }
+.task-scroll::-webkit-scrollbar-thumb { background: rgba(255,255,255,0.18); border-radius: 2px; }
+
+.empty-state { text-align: center; padding: 36px 20px; color: var(--tx3); }
+.empty-state .ei { font-size: 36px; margin-bottom: 10px; }
+.empty-state p { font-size: 13px; }
+
+/* ─── TIMER RING ───────────────────────────────────── */
+.ring-wrap {
+  position: relative; width: 240px; height: 240px; margin: 0 auto;
+}
+.ring-svg { width: 100%; height: 100%; transform: rotate(-90deg); }
+.ring-track { fill: none; stroke: rgba(255,255,255,0.07); stroke-width: 7; }
+.ring-progress {
+  fill: none; stroke: var(--gold); stroke-width: 7; stroke-linecap: round;
+  stroke-dasharray: 659.7; stroke-dashoffset: 0;
+  transition: stroke-dashoffset 1s linear, stroke 0.5s ease;
+  filter: drop-shadow(0 0 8px var(--gold));
+}
+.ring-progress.warn { stroke: #ff9800; filter: drop-shadow(0 0 8px rgba(255,152,0,0.5)); }
+.ring-progress.crit { stroke: var(--red); filter: drop-shadow(0 0 14px rgba(255,68,85,0.65)); }
+.ring-center {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+}
+.digits {
+  font-size: 52px; font-weight: 800; letter-spacing: -0.03em;
+  font-variant-numeric: tabular-nums; line-height: 1;
+}
+.digits-label { font-size: 10px; color: var(--tx3); letter-spacing: 0.18em; text-transform: uppercase; margin-top: 5px; }
+
+/* ─── PROGRESS BAR ─────────────────────────────────── */
+.prog-track { height: 3px; background: rgba(255,255,255,0.07); border-radius: 2px; overflow: hidden; }
+.prog-fill {
+  height: 100%; background: linear-gradient(90deg, var(--purple), var(--cyan));
+  border-radius: 2px; transition: width 0.5s ease;
+  box-shadow: 0 0 8px var(--cyan-g);
+}
+
+/* ─── TASK PREVIEW ROWS ────────────────────────────── */
+.prev-row {
+  display: flex; align-items: center; gap: 10px;
+  padding: 9px 12px; border-radius: var(--r-sm);
+  font-size: 13px;
+}
+.prev-row.curr { background: rgba(201,162,39,0.09); border: 1px solid rgba(201,162,39,0.28); }
+.prev-row.done { opacity: 0.45; text-decoration: line-through; }
+.prev-row.skip { opacity: 0.45; }
+.dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
+.dot-idle { background: var(--tx3); }
+.dot-curr { background: var(--gold); box-shadow: 0 0 6px var(--gold-g); }
+.dot-done { background: var(--green); box-shadow: 0 0 6px var(--green-g); }
+.dot-skip { background: var(--red); }
+
+/* ─── MYSTERY CRATE ────────────────────────────────── */
+.crate-wrap {
+  display: flex; flex-direction: column; align-items: center;
+  gap: 18px; padding: 32px 0; position: relative;
+}
+.crate-glow {
+  position: absolute; inset: -30px;
+  background: radial-gradient(circle, var(--gold-g) 0%, transparent 70%);
+  animation: gPulse 2s ease-in-out infinite; pointer-events: none;
+}
+@keyframes gPulse {
+  0%,100% { opacity: 0.5; transform: scale(1); }
+  50%      { opacity: 1;   transform: scale(1.12); }
+}
+.crate {
+  position: relative; width: 150px; height: 140px;
+  cursor: pointer; perspective: 500px;
+}
+.crate:not(.open) { animation: crateShake 1.4s ease-in-out infinite; }
+@keyframes crateShake {
+  0%,100% { transform: translateX(0) rotate(0deg); }
+  12%  { transform: translateX(-4px) rotate(-1.5deg); }
+  24%  { transform: translateX(4px) rotate(1.5deg); }
+  36%  { transform: translateX(-3px) rotate(-0.8deg); }
+  48%  { transform: translateX(3px) rotate(0.8deg); }
+  60%  { transform: translateX(-2px) rotate(-0.4deg); }
+  72%  { transform: translateX(2px) rotate(0.4deg); }
+  84%  { transform: translateX(-1px) rotate(0deg); }
+}
+.crate-lid {
+  position: absolute; top: 0; width: 150px; height: 56px;
+  background: linear-gradient(180deg, #b07826 0%, #8a5c18 100%);
+  border-radius: 10px 10px 4px 4px;
+  border: 2px solid #d4902e; border-bottom: none;
+  transform-origin: bottom center; transform-style: preserve-3d;
+  transition: transform 0.65s cubic-bezier(0.4,0,0.2,1);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,0.25), 0 -4px 14px rgba(0,0,0,0.3);
+}
+.crate.open .crate-lid { transform: rotateX(-128deg); }
+.crate-lid::after {
+  content: '';
+  position: absolute; bottom: 0; left: 0; right: 0; height: 6px;
+  background: #6b4214; border-radius: 0 0 3px 3px;
+}
+.crate-body {
+  position: absolute; bottom: 0; width: 150px; height: 96px;
+  background: linear-gradient(180deg, #8a5c18 0%, #6b4214 55%, #3e2208 100%);
+  border-radius: 8px 8px 12px 12px;
+  border: 2px solid #d4902e; border-top: none;
+  box-shadow: inset 0 -4px 12px rgba(0,0,0,0.4), 0 8px 28px rgba(0,0,0,0.5),
+              0 0 40px var(--gold-g);
+}
+.crate-body::before {
+  content: ''; position: absolute;
+  left: 50%; top: 0; bottom: 0;
+  transform: translateX(-50%); width: 2px; background: #d4902e;
+}
+.crate-body::after {
+  content: ''; position: absolute;
+  left: 0; right: 0; top: 50%;
+  transform: translateY(-50%); height: 2px; background: #d4902e;
+}
+.crate-lock {
+  position: absolute; left: 50%; top: 50%;
+  transform: translate(-50%, -50%);
+  width: 26px; height: 26px; border-radius: 50%; z-index: 2;
+  background: linear-gradient(135deg, var(--gold), #e8c040);
+  box-shadow: 0 0 14px var(--gold-g);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 13px;
+}
+.crate-hint {
+  font-size: 12px; color: var(--tx3); letter-spacing: 0.08em;
+  animation: hintBlink 2.2s ease-in-out infinite;
+}
+@keyframes hintBlink { 0%,100% { opacity: 0.45; } 50% { opacity: 1; } }
+
+/* ─── REWARD CARD ──────────────────────────────────── */
+.reward-card {
+  width: 100%; padding: 26px; border-radius: var(--r-lg);
+  display: none;
+  animation: revealPop 0.55s cubic-bezier(0.34,1.56,0.64,1);
+}
+.reward-card.show { display: block; }
+@keyframes revealPop {
+  from { opacity: 0; transform: translateY(28px) scale(0.88); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+.r-badge {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 5px 14px; border-radius: 20px;
+  font-size: 10px; font-weight: 800; letter-spacing: 0.18em;
+  text-transform: uppercase; margin-bottom: 14px;
+}
+.r-badge.doc  { background: rgba(123,47,255,0.18); border: 1px solid rgba(123,47,255,0.45); color: #c09fff; }
+.r-badge.pod  { background: rgba(0,229,255,0.12);  border: 1px solid rgba(0,229,255,0.38);  color: var(--cyan); }
+.r-badge.treat{ background: rgba(0,230,118,0.12);  border: 1px solid rgba(0,230,118,0.38);  color: var(--green);}
+.r-title { font-size: 20px; font-weight: 800; margin-bottom: 8px; line-height: 1.3; }
+.r-desc  { font-size: 13px; color: var(--tx2); line-height: 1.65; margin-bottom: 14px; }
+.r-meta  { font-size: 11px; color: var(--tx3); }
+
+/* ─── QUOTE CARD ───────────────────────────────────── */
+.quote-card {
+  padding: 26px; border-radius: 0 var(--r-md) var(--r-md) 0;
+  border-left: 3px solid var(--purple);
+}
+.q-text   { font-size: 18px; font-weight: 300; font-style: italic; line-height: 1.65; margin-bottom: 12px; }
+.q-author { font-size: 12px; color: var(--tx3); font-weight: 600; }
+
+/* ─── SUMMARY STATS ────────────────────────────────── */
+.stat-box {
+  flex: 1; padding: 20px;
+  display: flex; flex-direction: column; align-items: center; gap: 7px; text-align: center;
+}
+.s-num {
+  font-size: 38px; font-weight: 900;
+  background: linear-gradient(135deg, var(--gold), var(--cyan));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── XP BURST ─────────────────────────────────────── */
+.xp-burst {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 9px 22px; border-radius: 24px;
+  background: linear-gradient(135deg, rgba(201,162,39,0.18), rgba(0,229,255,0.15));
+  border: 1px solid rgba(201,162,39,0.4);
+  font-size: 19px; font-weight: 900; color: var(--gold);
+  box-shadow: 0 0 22px var(--gold-g);
+  animation: xpPop 0.5s cubic-bezier(0.34,1.56,0.64,1);
+}
+@keyframes xpPop { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+
+/* ─── PARTICLES ────────────────────────────────────── */
+.particle {
+  position: fixed; border-radius: 50%;
+  pointer-events: none; z-index: 9999;
+  animation: pFly var(--dur, 1.4s) ease-out forwards;
+}
+@keyframes pFly {
+  0%   { opacity: 1; transform: translate(0,0) scale(1); }
+  100% { opacity: 0; transform: translate(var(--dx),var(--dy)) scale(0); }
+}
+
+/* ─── SOUND TOGGLE ─────────────────────────────────── */
+.snd-btn {
+  width: 38px; height: 38px; border-radius: 50%;
+  background: var(--glass); border: 1px solid var(--glass-b);
+  cursor: pointer; font-size: 17px;
+  display: flex; align-items: center; justify-content: center;
+  transition: var(--ease);
+}
+.snd-btn:hover { background: rgba(255,255,255,0.1); }
+
+/* ─── DIVIDER ──────────────────────────────────────── */
+hr { border: none; border-top: 1px solid var(--glass-b); margin: 2px 0; }
+</style>
+</head>
+<body>
+<canvas id="stars"></canvas>
+
+<div id="app">
+
+  <!-- ══════════ HOME ══════════ -->
+  <div id="s-home" class="screen active">
+
+    <div class="glass topbar">
+      <div class="logo gradient-text">⚔ QUEST LOG</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div class="stat-pill">🔥 <span class="val" id="h-streak">0</span>
+          <span style="color:var(--tx2);font-size:10px">streak</span>
+        </div>
+        <div class="stat-pill">⚡ <span class="val" id="h-xp">0</span>
+          <span style="color:var(--tx2);font-size:10px">XP</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass" style="padding:22px">
+      <div class="label" style="margin-bottom:14px">New Quest</div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <input type="text" id="t-input" placeholder="What needs to be done today?" maxlength="90" />
+        <div style="display:flex;gap:16px;align-items:flex-end;flex-wrap:wrap">
+          <div>
+            <div class="label" style="margin-bottom:8px">Priority</div>
+            <div class="stars-row" id="p-stars">
+              <span class="star" data-v="1">★</span>
+              <span class="star" data-v="2">★</span>
+              <span class="star" data-v="3">★</span>
+              <span class="star" data-v="4">★</span>
+              <span class="star" data-v="5">★</span>
+            </div>
+          </div>
+          <div style="flex:1;min-width:130px">
+            <div class="label" style="margin-bottom:8px">Time Estimate</div>
+            <select id="t-time">
+              <option value="900">15 min</option>
+              <option value="1800">30 min</option>
+              <option value="2700">45 min</option>
+              <option value="3600" selected>1 hour</option>
+              <option value="5400">1.5 hours</option>
+              <option value="7200">2 hours</option>
+              <option value="10800">3 hours</option>
+            </select>
+          </div>
+          <button class="btn btn-ghost" id="add-btn" style="padding:13px 20px;margin-bottom:0">
+            + Add
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass" style="padding:18px 20px">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+        <div class="label">Today's Quests</div>
+        <span id="q-count" style="font-size:11px;color:var(--tx3)">0 quests · drag to reorder</span>
+      </div>
+      <div class="task-scroll" id="t-list">
+        <div class="empty-state">
+          <div class="ei">📜</div>
+          <p>No quests yet. Add your tasks above to begin your day.</p>
+        </div>
+      </div>
+    </div>
+
+    <button class="btn btn-gold" id="begin-btn" style="width:100%;padding:17px" disabled>
+      ⚔ &nbsp;BEGIN FOCUS SESSION
+    </button>
+
+  </div>
+
+  <!-- ══════════ TIMER ══════════ -->
+  <div id="s-timer" class="screen">
+
+    <div class="glass topbar">
+      <div class="logo gradient-text">⚔ QUEST LOG</div>
+      <div style="display:flex;gap:10px;align-items:center">
+        <div class="stat-pill">
+          <span class="val" id="tm-num">1</span>/<span class="val" id="tm-tot">1</span>
+          <span style="color:var(--tx2);font-size:10px">quests</span>
+        </div>
+        <div class="snd-btn" id="snd-btn" title="Toggle ambient sound">🔊</div>
+      </div>
+    </div>
+
+    <div class="glass" style="padding:30px;text-align:center">
+      <div class="label" style="margin-bottom:7px">Current Quest</div>
+      <div id="tm-name" style="font-size:19px;font-weight:700;margin-bottom:26px;min-height:26px;line-height:1.3"></div>
+
+      <div class="ring-wrap">
+        <svg class="ring-svg" viewBox="0 0 240 240">
+          <circle class="ring-track"    cx="120" cy="120" r="105"/>
+          <circle class="ring-progress" cx="120" cy="120" r="105" id="r-ring"/>
+        </svg>
+        <div class="ring-center">
+          <div class="digits" id="r-digits">00:00</div>
+          <div class="digits-label">remaining</div>
+        </div>
+      </div>
+
+      <div style="margin-top:26px;display:flex;gap:12px;justify-content:center;flex-wrap:wrap">
+        <button class="btn btn-ghost" id="pause-btn" style="padding:12px 20px">⏸ Pause</button>
+        <button class="btn btn-green" id="done-btn">✓ &nbsp;Quest Complete</button>
+      </div>
+      <div style="margin-top:10px">
+        <button class="btn btn-red" id="skip-btn" style="font-size:12px;padding:10px 20px">
+          Skip Quest
+        </button>
+      </div>
+    </div>
+
+    <div class="glass" style="padding:18px 20px">
+      <div class="label" style="margin-bottom:10px">Session Progress</div>
+      <div class="prog-track" style="margin-bottom:14px">
+        <div class="prog-fill" id="overall-p" style="width:0%"></div>
+      </div>
+      <div id="prev-list" style="display:flex;flex-direction:column;gap:4px"></div>
+    </div>
+
+  </div>
+
+  <!-- ══════════ REWARD ══════════ -->
+  <div id="s-reward" class="screen">
+
+    <div class="glass topbar">
+      <div class="logo gradient-text">⚔ QUEST LOG</div>
+      <div class="stat-pill">⚡ <span class="val" id="rew-total">0</span>
+        <span style="color:var(--tx2);font-size:10px">total XP</span>
+      </div>
+    </div>
+
+    <div class="glass" style="padding:24px;text-align:center">
+      <div class="label" style="color:var(--gold);margin-bottom:6px;letter-spacing:0.25em">Quest Complete</div>
+      <div style="font-size:22px;font-weight:800;margin-bottom:4px">
+        ⚡ +<span id="rew-xp">0</span> XP
+      </div>
+      <div id="rew-badge" class="xp-burst" style="margin:12px auto 0">✦ Opening reward…</div>
+
+      <div class="crate-wrap">
+        <div class="crate-glow"></div>
+        <div class="crate" id="crate">
+          <div class="crate-lid"></div>
+          <div class="crate-body">
+            <div class="crate-lock">🔒</div>
+          </div>
+        </div>
+        <div class="crate-hint" id="crate-hint">Click the crate to reveal your reward</div>
+      </div>
+
+      <div class="reward-card glass" id="r-card">
+        <div id="r-badge-type" class="r-badge doc">🎬 Documentary</div>
+        <div id="r-title" class="r-title">—</div>
+        <div id="r-desc"  class="r-desc">—</div>
+        <div id="r-meta"  class="r-meta"></div>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:12px">
+      <button class="btn btn-ghost"  id="next-btn"  style="flex:1;padding:15px">→ Next Quest</button>
+      <button class="btn btn-gold"   id="finish-btn" style="flex:1;padding:15px;display:none">★ View Summary</button>
+    </div>
+
+  </div>
+
+  <!-- ══════════ REFLECTION ══════════ -->
+  <div id="s-reflect" class="screen">
+
+    <div class="glass topbar">
+      <div class="logo gradient-text">⚔ QUEST LOG</div>
+    </div>
+
+    <div class="glass" style="padding:30px;text-align:center">
+      <div style="font-size:46px;margin-bottom:14px">🕯</div>
+      <div class="label" style="color:var(--red);margin-bottom:8px">Quest Abandoned</div>
+      <div style="font-size:20px;font-weight:700;margin-bottom:6px">That's okay.</div>
+      <div style="font-size:13px;color:var(--tx2);max-width:400px;margin:0 auto;line-height:1.65">
+        Every great practitioner has off days. What matters is returning. Take a breath, read this, and decide.
+      </div>
+    </div>
+
+    <div class="glass quote-card" id="q-card">
+      <div class="q-text"   id="q-text"></div>
+      <div class="q-author" id="q-author"></div>
+    </div>
+
+    <div style="display:flex;gap:12px">
+      <button class="btn btn-ghost"  id="retry-btn"    style="flex:1;padding:15px">↺ Retry Quest</button>
+      <button class="btn btn-purple" id="continue-btn" style="flex:1;padding:15px">→ Continue</button>
+    </div>
+
+  </div>
+
+  <!-- ══════════ SUMMARY ══════════ -->
+  <div id="s-summary" class="screen">
+
+    <div class="glass topbar">
+      <div class="logo gradient-text">⚔ QUEST LOG</div>
+    </div>
+
+    <div class="glass" style="padding:30px;text-align:center">
+      <div id="sum-trophy" style="font-size:50px;margin-bottom:10px">🏆</div>
+      <div id="sum-head"   style="font-size:24px;font-weight:900;margin-bottom:5px">Day Complete!</div>
+      <div id="sum-sub"    style="font-size:13px;color:var(--tx2)">Here's what you achieved</div>
+    </div>
+
+    <div class="glass" style="padding:0;overflow:hidden">
+      <div style="display:flex">
+        <div class="stat-box" style="border-right:1px solid var(--glass-b)">
+          <div class="s-num" id="ss-done">0/0</div>
+          <div class="label">Quests Done</div>
+        </div>
+        <div class="stat-box" style="border-right:1px solid var(--glass-b)">
+          <div class="s-num" id="ss-time">0m</div>
+          <div class="label">Time Focused</div>
+        </div>
+        <div class="stat-box">
+          <div class="s-num" id="ss-xp">0</div>
+          <div class="label">XP Earned</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="glass" style="padding:18px 20px">
+      <div class="label" style="margin-bottom:10px">Quest Results</div>
+      <div id="sum-list" style="display:flex;flex-direction:column;gap:6px"></div>
+    </div>
+
+    <button class="btn btn-gold" id="newday-btn" style="width:100%;padding:16px">
+      ☀ &nbsp;Start a Fresh Day
+    </button>
+
+  </div>
+
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════
+   REWARD POOLS
+══════════════════════════════════════════════════════ */
+const R = {
+  documentaries: [
+    { title:"Free Solo", year:2018, desc:"Alex Honnold attempts to free-solo El Capitan's 3,000-foot face — widely considered the greatest athletic achievement of the decade.", platform:"Disney+", dur:"1h 40m" },
+    { title:"The Vietnam War", year:2017, desc:"Ken Burns & Lynn Novick's definitive 10-part chronicle of America's most divisive conflict. Absolutely essential, life-altering television.", platform:"PBS / Netflix", dur:"Series (18h)" },
+    { title:"Apollo 11", year:2019, desc:"Newly discovered 70mm footage of the moon landing assembled into one of the most stunning documentaries ever made. You will feel like you were there.", platform:"Max", dur:"1h 33m" },
+    { title:"Jiro Dreams of Sushi", year:2011, desc:"An 85-year-old sushi master's lifelong, relentless pursuit of perfection. A meditation on mastery — and on what it costs.", platform:"Various", dur:"1h 21m" },
+    { title:"Abstract: The Art of Design", year:2017, desc:"Inside the studios and minds of the world's most influential designers. The Ilse Crawford and Tinker Hatfield episodes alone are worth it.", platform:"Netflix", dur:"Series" },
+    { title:"The Last Dance", year:2020, desc:"The definitive story of Michael Jordan and the 1990s Chicago Bulls dynasty. Even if you don't care about basketball: watch it.", platform:"Netflix", dur:"10 episodes" },
+    { title:"Citizenfour", year:2014, desc:"Filmed in real-time in a Hong Kong hotel room: Laura Poitras documents Edward Snowden revealing the NSA's global surveillance apparatus.", platform:"Various", dur:"1h 54m" },
+    { title:"Won't You Be My Neighbor?", year:2018, desc:"The life and philosophy of Fred Rogers. His views on human dignity and children's inner lives are far more radical than you expect.", platform:"Peacock", dur:"1h 34m" },
+    { title:"13th", year:2016, desc:"Ava DuVernay's sharp, essential analysis of the 13th Amendment's exception clause and its downstream effects on mass incarceration in America.", platform:"Netflix", dur:"1h 40m" },
+    { title:"Icarus", year:2017, desc:"A cyclist begins testing performance-enhancing drugs on himself and accidentally stumbles into the largest doping scandal in Olympic history.", platform:"Netflix", dur:"1h 36m" },
+    { title:"My Architect", year:2003, desc:"Nathaniel Kahn's moving search to understand his enigmatic, largely absent father — architectural genius Louis Kahn. Architecture and grief intertwined.", platform:"Various", dur:"1h 56m" },
+    { title:"The Human Scale", year:2012, desc:"Jan Gehl's 50-year fight to redesign cities for people rather than cars. Required viewing for anyone who cares about how urban life actually feels.", platform:"Various", dur:"1h 23m" },
+    { title:"Urbanized", year:2011, desc:"Gary Hustwit examines the design decisions shaping the world's cities. Features Rem Koolhaas, Oscar Niemeyer, and the mayor who transformed Bogotá.", platform:"Various", dur:"1h 25m" },
+    { title:"Chef's Table: Massimo Bottura", year:2015, desc:"The most passionate, philosophical chef alive. His episode is one of the greatest portraits of creative obsession and resilience ever put on film.", platform:"Netflix", dur:"~55 min" },
+    { title:"Hoop Dreams", year:1994, desc:"The gold standard of sports documentaries. Two Chicago kids chasing NBA dreams over five years — an honest portrait of ambition and the American system.", platform:"Various", dur:"2h 51m" },
+  ],
+  podcasts: [
+    { title:"99% Invisible — \"The Pruitt-Igoe Myth\"", desc:"The real story of America's most infamous housing project, and why its demolition became a turning point for architecture and urban policy.", platform:"99percentinvisible.org", dur:"~30 min" },
+    { title:"99% Invisible — \"Guerrilla Public Service\"", desc:"The story of one man who went rogue to fix Los Angeles' broken public signage — one unauthorised, hyper-accurate sign at a time.", platform:"99percentinvisible.org", dur:"~22 min" },
+    { title:"99% Invisible — \"The Fancy Shape\"", desc:"How the Michelin star rating system was invented to sell more car tyres, and how it accidentally created a global obsession.", platform:"99percentinvisible.org", dur:"~28 min" },
+    { title:"Hardcore History — \"Blueprint for Armageddon\"", desc:"Dan Carlin's magnum opus on WWI — the industrialisation of death, the collapse of European civilization, the mud. This is what history podcasting looks like at its absolute ceiling.", platform:"dancarlin.com", dur:"6 parts, ~23h total" },
+    { title:"American History Tellers — \"The Manhattan Project\"", desc:"The race to build the atomic bomb and the impossible moral calculus faced by the physicists, generals, and politicians who made it real.", platform:"Wondery", dur:"Series" },
+    { title:"Strong Towns — \"The Growth Ponzi Scheme\"", desc:"Chuck Marohn explains clearly and terrifyingly how the pattern of suburban development is quietly bankrupting American cities, one cul-de-sac at a time.", platform:"strongtowns.org", dur:"~45 min" },
+    { title:"Revisionist History — \"The Big Man Can't Shoot\"", desc:"Malcolm Gladwell investigates why Wilt Chamberlain abandoned the objectively perfect free-throw technique. A study in ego versus pure performance.", platform:"Pushkin Industries", dur:"~35 min" },
+    { title:"The Knowledge Project — Shane Parrish on Mental Models", desc:"A rigorous conversation on how to think clearly, make better decisions, and distinguish genuine understanding from the illusion of knowledge.", platform:"fs.blog", dur:"~60 min" },
+    { title:"How I Built This — Sara Blakely (Spanx)", desc:"One of the most honest, unglamorous, and ultimately inspiring founder stories. She drove around selling fax machines before selling a billion-dollar idea.", platform:"NPR / Spotify", dur:"~45 min" },
+    { title:"The Ezra Klein Show — Why Is There No Housing?", desc:"A deep, policy-rich conversation on why housing costs have become catastrophic and what structural changes would actually fix it.", platform:"NYT Podcasts", dur:"~90 min" },
+  ],
+  treats: [
+    { title:"Slow Coffee Ritual", icon:"☕", desc:"Put on a record or your favourite playlist. Make yourself a careful pour-over or french press. Proper ceremony — weigh the grounds, heat the water correctly. No rushing." },
+    { title:"Guilt-Free YouTube Descent", icon:"▶", desc:"Open YouTube and follow pure curiosity for 30 minutes. No guilt, no productivity content. Let the algorithm take you somewhere genuinely unexpected." },
+    { title:"The Aimless Walk", icon:"🚶", desc:"Go outside with no route, no destination, no podcasts, no music. Just walk slowly and observe whatever city is around you. Notice what you'd normally scroll past." },
+    { title:"Order The Thing", icon:"📦", desc:"You know exactly what you've been craving. The takeout, the book, the small thing you've been putting off. Do it now. You earned it." },
+    { title:"10-Page Pleasure Read", icon:"📖", desc:"Grab a physical book — not your phone — and read exactly 10 pages of something purely for pleasure. No self-improvement required or permitted." },
+    { title:"Call Someone You Miss", icon:"📞", desc:"Think of one person you've been meaning to call. Do it right now. It takes less courage than you think, and they'll be glad you did." },
+    { title:"Elaborate Snack Assembly", icon:"🍱", desc:"Go to your kitchen and construct the most satisfying snack combination you can imagine. Apply the same focus here as you did to your quest. This is art." },
+    { title:"The 18-Minute Power Nap", icon:"💤", desc:"Set an alarm for exactly 18 minutes. Lie down flat, close your eyes. Even if you don't sleep, the stillness is the reward. Science backs this duration." },
+    { title:"Stretch & Drift", icon:"🧘", desc:"Put on a long ambient track (Brian Eno's Music for Airports is perfect). Spend 15 minutes moving however feels good. No routine, no performance — pure intuition." },
+    { title:"Window of Wonder", icon:"🪟", desc:"Find a good window — or step outside — and spend 10 full minutes just watching the world move. No phone. Observe the small dramas unfolding around you." },
+  ]
+};
+
+const QUOTES = [
+  { q:"The secret of getting ahead is getting started.", a:"Mark Twain" },
+  { q:"Done is better than perfect.", a:"Sheryl Sandberg" },
+  { q:"We are what we repeatedly do. Excellence, then, is not an act, but a habit.", a:"Aristotle" },
+  { q:"The impediment to action advances action. What stands in the way becomes the way.", a:"Marcus Aurelius" },
+  { q:"Discipline is choosing between what you want now and what you want most.", a:"Abraham Lincoln" },
+  { q:"The most effective way to do it, is to do it.", a:"Amelia Earhart" },
+  { q:"It always seems impossible until it's done.", a:"Nelson Mandela" },
+  { q:"Absorb what is useful, discard what is useless, and add what is specifically your own.", a:"Bruce Lee" },
+  { q:"You don't have to be great to start, but you have to start to be great.", a:"Zig Ziglar" },
+  { q:"Focus on the process. The results will take care of themselves.", a:"Bill Walsh" },
+];
+
+/* ══════════════════════════════════════════════════════
+   STATE
+══════════════════════════════════════════════════════ */
+const S = {
+  tasks: [],
+  curIdx: 0,
+  timeLeft: 0,
+  totalTime: 0,
+  timer: null,
+  paused: false,
+  sound: true,
+  audioCtx: null,
+  ambNode: null,
+  xp: 0,
+  streak: 0,
+  focusSec: 0,
+  reward: null,
+  starPick: 3,
+  skipPending: false,
+};
+
+/* ══════════════════════════════════════════════════════
+   STARS CANVAS
+══════════════════════════════════════════════════════ */
+function initStars() {
+  const c = document.getElementById('stars');
+  c.width = window.innerWidth; c.height = window.innerHeight;
+  const ctx = c.getContext('2d');
+  const pts = Array.from({length:130}, () => ({
+    x: Math.random() * c.width,
+    y: Math.random() * c.height,
+    r: Math.random() * 1.4 + 0.2,
+    a: Math.random() * 0.65 + 0.1,
+    sp: Math.random() * 0.35 + 0.1,
+    ph: Math.random() * Math.PI * 2
+  }));
+  let t = 0;
+  (function draw() {
+    ctx.clearRect(0, 0, c.width, c.height);
+    pts.forEach(p => {
+      const a = p.a * (0.55 + 0.45 * Math.sin(t * p.sp + p.ph));
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.r, 0, Math.PI*2);
+      ctx.fillStyle = `rgba(255,255,255,${a})`;
+      ctx.fill();
+    });
+    t += 0.018;
+    requestAnimationFrame(draw);
+  })();
+  window.addEventListener('resize', () => { c.width = window.innerWidth; c.height = window.innerHeight; });
+}
+
+/* ══════════════════════════════════════════════════════
+   AUDIO
+══════════════════════════════════════════════════════ */
+function getCtx() {
+  if (!S.audioCtx) {
+    try { S.audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch(e) {}
+  }
+  return S.audioCtx;
+}
+
+function playAmbient() {
+  if (!S.sound) return;
+  const ctx = getCtx(); if (!ctx) return;
+  stopAmbient();
+  const master = ctx.createGain();
+  master.gain.setValueAtTime(0, ctx.currentTime);
+  master.gain.linearRampToValueAtTime(0.045, ctx.currentTime + 2.5);
+  master.connect(ctx.destination);
+
+  const mkOsc = (freq, type, vol) => {
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.type = type; o.frequency.value = freq;
+    g.gain.value = vol; o.connect(g); g.connect(master); o.start();
+    return o;
+  };
+  const o1 = mkOsc(55, 'sine', 1);
+  const o2 = mkOsc(82.5, 'sine', 0.5);
+  const o3 = mkOsc(220, 'sine', 0.15);
+  const o4 = mkOsc(110, 'triangle', 0.12);
+  S.ambNode = { oscs:[o1,o2,o3,o4], gain: master };
+}
+
+function stopAmbient() {
+  if (!S.ambNode) return;
+  const ctx = getCtx();
+  S.ambNode.gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 1);
+  const node = S.ambNode; S.ambNode = null;
+  setTimeout(() => node.oscs.forEach(o => { try { o.stop(); } catch(e){} }), 1200);
+}
+
+function playTone(freqs, dur=0.9, vol=0.1, delay=0.06) {
+  if (!S.sound) return;
+  const ctx = getCtx(); if (!ctx) return;
+  freqs.forEach((f, i) => {
+    const o = ctx.createOscillator(); const g = ctx.createGain();
+    o.type = 'sine'; o.frequency.value = f;
+    g.gain.setValueAtTime(vol, ctx.currentTime + i*delay);
+    g.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + i*delay + dur);
+    o.connect(g); g.connect(ctx.destination);
+    o.start(ctx.currentTime + i*delay);
+    o.stop(ctx.currentTime + i*delay + dur + 0.05);
+  });
+}
+
+const playComplete = () => playTone([261.6, 329.6, 392, 523.3], 1.3, 0.11);
+const playCrate    = () => playTone([523.3, 659.3, 783.9, 1046.5, 1318.5], 0.45, 0.09, 0.08);
+const playTick     = () => playTone([800], 0.1, 0.025);
+
+/* ══════════════════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════════════════ */
+function show(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById('s-' + id).classList.add('active');
+}
+
+/* ══════════════════════════════════════════════════════
+   TASK MANAGEMENT
+══════════════════════════════════════════════════════ */
+function esc(s) {
+  return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+function fmtTime(sec) {
+  const m = Math.round(sec / 60);
+  return m >= 60 ? `${Math.floor(m/60)}h${m%60 ? ` ${m%60}m` : ''}` : `${m}m`;
+}
+
+function insertSorted(task) {
+  let i = 0;
+  while (i < S.tasks.length && S.tasks[i].priority >= task.priority) i++;
+  S.tasks.splice(i, 0, task);
+}
+
+function renderTasks() {
+  const list = document.getElementById('t-list');
+  const cnt  = document.getElementById('q-count');
+  cnt.textContent = `${S.tasks.length} quest${S.tasks.length!==1?'s':''} · drag to reorder`;
+
+  if (!S.tasks.length) {
+    list.innerHTML = `<div class="empty-state"><div class="ei">📜</div><p>No quests yet. Add your tasks above to begin your day.</p></div>`;
+    document.getElementById('begin-btn').disabled = true;
+    return;
+  }
+
+  list.innerHTML = '';
+  S.tasks.forEach((t, i) => {
+    const d = document.createElement('div');
+    d.className = 'task-item'; d.draggable = true; d.dataset.i = i;
+    const stars = '★'.repeat(t.priority) + '☆'.repeat(5-t.priority);
+    d.innerHTML = `
+      <div class="task-rank">${i+1}</div>
+      <div class="task-info">
+        <div class="task-name">${esc(t.name)}</div>
+        <div class="task-meta">${stars} &nbsp;·&nbsp; ${fmtTime(t.time)}</div>
+      </div>
+      <div class="time-badge">${fmtTime(t.time)}</div>
+      <button class="del-btn" data-i="${i}">✕</button>
+    `;
+    list.appendChild(d);
+  });
+
+  document.getElementById('begin-btn').disabled = false;
+  bindDrag(); bindDel();
+}
+
+function bindDel() {
+  document.querySelectorAll('.del-btn').forEach(b => {
+    b.addEventListener('click', e => {
+      e.stopPropagation();
+      S.tasks.splice(+b.dataset.i, 1);
+      renderTasks();
+    });
+  });
+}
+
+function bindDrag() {
+  const items = document.querySelectorAll('.task-item');
+  let src = null;
+  items.forEach(el => {
+    el.addEventListener('dragstart', () => { src = +el.dataset.i; el.classList.add('dragging'); });
+    el.addEventListener('dragend',   () => el.classList.remove('dragging'));
+    el.addEventListener('dragover',  e => { e.preventDefault(); el.classList.add('drag-over'); });
+    el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+    el.addEventListener('drop', e => {
+      e.preventDefault(); el.classList.remove('drag-over');
+      const dst = +el.dataset.i;
+      if (src !== null && src !== dst) {
+        const [m] = S.tasks.splice(src, 1);
+        S.tasks.splice(dst, 0, m);
+        renderTasks();
+      }
+    });
+  });
+}
+
+/* ══════════════════════════════════════════════════════
+   PRIORITY STARS
+══════════════════════════════════════════════════════ */
+function initStarPicker() {
+  const row = document.getElementById('p-stars');
+  row.querySelectorAll('.star').forEach(s => {
+    s.addEventListener('click', () => { S.starPick = +s.dataset.v; drawStars(); });
+    s.addEventListener('mouseenter', () => {
+      const v = +s.dataset.v;
+      row.querySelectorAll('.star').forEach(x => {
+        x.style.color = +x.dataset.v <= v ? 'var(--gold)' : 'var(--tx3)';
+      });
+    });
+  });
+  row.addEventListener('mouseleave', drawStars);
+  drawStars();
+}
+
+function drawStars() {
+  document.querySelectorAll('.star').forEach(s => {
+    const on = +s.dataset.v <= S.starPick;
+    s.classList.toggle('on', on); s.style.color = '';
+  });
+}
+
+/* ══════════════════════════════════════════════════════
+   TIMER
+══════════════════════════════════════════════════════ */
+const CIRC = 2 * Math.PI * 105; // ≈ 659.73
+
+function startTimer(idx) {
+  S.curIdx = idx;
+  const task = S.tasks[idx];
+  S.timeLeft = task.time;
+  S.totalTime = task.time;
+  S.paused = false;
+
+  document.getElementById('tm-name').textContent = task.name;
+  document.getElementById('tm-num').textContent  = idx + 1;
+  document.getElementById('tm-tot').textContent  = S.tasks.length;
+  document.getElementById('pause-btn').textContent = '⏸ Pause';
+
+  updateRing(); updatePrevList(); updateOverall();
+  show('timer');
+
+  clearInterval(S.timer);
+  S.timer = setInterval(tick, 1000);
+  if (S.sound) playAmbient();
+}
+
+function tick() {
+  if (S.paused) return;
+  S.timeLeft--; S.focusSec++;
+  updateRing();
+  if (S.timeLeft % 60 === 0 && S.timeLeft > 0) playTick();
+  if (S.timeLeft <= 0) {
+    clearInterval(S.timer); stopAmbient();
+    playComplete(); onTaskDone();
+  }
+}
+
+function updateRing() {
+  const t = S.timeLeft;
+  const h = Math.floor(t/3600), m = Math.floor((t%3600)/60), s = t%60;
+  document.getElementById('r-digits').textContent =
+    h > 0 ? `${h}:${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`
+           : `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
+
+  const ratio = S.timeLeft / S.totalTime;
+  const ring = document.getElementById('r-ring');
+  ring.style.strokeDashoffset = CIRC * (1 - ratio);
+  ring.classList.remove('warn','crit');
+  if (ratio < 0.15) ring.classList.add('crit');
+  else if (ratio < 0.35) ring.classList.add('warn');
+}
+
+function updatePrevList() {
+  const el = document.getElementById('prev-list');
+  el.innerHTML = '';
+  S.tasks.forEach((t, i) => {
+    const d = document.createElement('div');
+    let cls = 'prev-row', dotCls = 'dot dot-idle';
+    if (t.status === 'done')   { cls += ' done'; dotCls = 'dot dot-done'; }
+    else if (t.status === 'skip') { cls += ' skip'; dotCls = 'dot dot-skip'; }
+    else if (i === S.curIdx)   { cls += ' curr'; dotCls = 'dot dot-curr'; }
+    d.className = cls;
+    d.innerHTML = `<div class="${dotCls}"></div>
+      <div style="flex:1;font-size:13px">${esc(t.name)}</div>
+      <div style="font-size:11px;color:var(--tx3)">${fmtTime(t.time)}</div>`;
+    el.appendChild(d);
+  });
+}
+
+function updateOverall() {
+  const done = S.tasks.filter(t => t.status).length;
+  document.getElementById('overall-p').style.width = (done / S.tasks.length * 100) + '%';
+}
+
+/* ══════════════════════════════════════════════════════
+   TASK COMPLETION → REWARD
+══════════════════════════════════════════════════════ */
+function onTaskDone() {
+  const task = S.tasks[S.curIdx];
+  task.status = 'done';
+  const xp = Math.round(100 + task.priority * 20 + task.time / 60);
+  S.xp += xp;
+  showReward(xp);
+}
+
+function pickReward() {
+  // Weighted random: treats slightly more common (immediately actionable)
+  const types = ['documentaries','podcasts','treats'];
+  const w     = [3, 3, 4]; const tot = 10;
+  let r = Math.random() * tot;
+  for (let i = 0; i < types.length; i++) { r -= w[i]; if (r <= 0) { const pool = R[types[i]]; return { type: types[i], data: pool[Math.floor(Math.random()*pool.length)] }; } }
+  const pool = R.treats; return { type:'treats', data: pool[Math.floor(Math.random()*pool.length)] };
+}
+
+function showReward(xp) {
+  clearInterval(S.timer); stopAmbient();
+  S.reward = pickReward();
+
+  document.getElementById('rew-xp').textContent    = xp;
+  document.getElementById('rew-total').textContent  = S.xp;
+  document.getElementById('rew-badge').textContent  = '✦ Click the crate!';
+
+  const crate = document.getElementById('crate');
+  crate.classList.remove('open');
+  document.getElementById('r-card').classList.remove('show');
+  document.getElementById('crate-hint').style.display = 'block';
+
+  const hasMore = S.tasks.slice(S.curIdx+1).some(t => !t.status);
+  document.getElementById('next-btn').style.display   = hasMore ? 'flex' : 'none';
+  document.getElementById('finish-btn').style.display = hasMore ? 'none' : 'flex';
+
+  show('reward');
+  spawnParticles();
+}
+
+function openCrate() {
+  const crate = document.getElementById('crate');
+  if (crate.classList.contains('open')) return;
+  playCrate();
+  crate.classList.add('open');
+  document.getElementById('crate-hint').style.display = 'none';
+
+  const { type, data } = S.reward;
+  const badge = document.getElementById('r-badge-type');
+  if (type === 'documentaries') { badge.className='r-badge doc'; badge.innerHTML='🎬 Documentary'; }
+  else if (type === 'podcasts') { badge.className='r-badge pod'; badge.innerHTML='🎙 Podcast Episode'; }
+  else                          { badge.className='r-badge treat'; badge.innerHTML=`${data.icon||'🎁'} Treat`; }
+
+  document.getElementById('r-title').textContent = data.title;
+  document.getElementById('r-desc').textContent  = data.desc;
+  const meta = [data.platform, data.dur].filter(Boolean).join(' · ');
+  document.getElementById('r-meta').textContent  = meta;
+
+  setTimeout(() => document.getElementById('r-card').classList.add('show'), 420);
+  setTimeout(() => spawnParticles(), 200);
+}
+
+/* ══════════════════════════════════════════════════════
+   SKIP / REFLECTION
+══════════════════════════════════════════════════════ */
+function skipTask() {
+  clearInterval(S.timer); stopAmbient();
+  S.skipPending = true;
+  const q = QUOTES[Math.floor(Math.random()*QUOTES.length)];
+  document.getElementById('q-text').textContent   = `"${q.q}"`;
+  document.getElementById('q-author').textContent = `— ${q.a}`;
+  show('reflect');
+}
+
+/* ══════════════════════════════════════════════════════
+   SUMMARY
+══════════════════════════════════════════════════════ */
+function showSummary() {
+  clearInterval(S.timer); stopAmbient();
+  const done  = S.tasks.filter(t => t.status==='done').length;
+  const total = S.tasks.length;
+  const pct   = done / total;
+
+  let trophy='🏆', head='Great Day!', sub='You showed up and delivered. Respect.';
+  if (pct >= 0.95) { trophy='👑'; head='Perfect Day!'; sub='Every quest conquered. That\'s elite.'; }
+  else if (pct >= 0.7) { trophy='🏆'; head='Great Day!'; sub='You showed up and delivered. Respect.'; }
+  else if (pct >= 0.45) { trophy='⚔';  head='Solid Session'; sub='More than half done. Build on this momentum.'; }
+  else { trophy='🕯'; head='Rough Day'; sub='Tomorrow is a fresh start. Rest well tonight.'; }
+
+  document.getElementById('sum-trophy').textContent = trophy;
+  document.getElementById('sum-head').textContent   = head;
+  document.getElementById('sum-sub').textContent    = sub;
+  document.getElementById('ss-done').textContent    = `${done}/${total}`;
+
+  const fh = Math.floor(S.focusSec/3600), fm = Math.floor((S.focusSec%3600)/60);
+  document.getElementById('ss-time').textContent = fh > 0 ? `${fh}h ${fm}m` : `${fm}m`;
+  document.getElementById('ss-xp').textContent   = S.xp;
+
+  const ul = document.getElementById('sum-list');
+  ul.innerHTML = '';
+  S.tasks.forEach(t => {
+    const d = document.createElement('div');
+    d.className = 'prev-row' + (t.status==='done' ? ' done' : t.status==='skip' ? ' skip' : '');
+    const dot = t.status==='done' ? 'dot-done' : t.status==='skip' ? 'dot-skip' : 'dot-idle';
+    const lbl = t.status==='done' ? '✓ Done' : t.status==='skip' ? '⚡ Skipped' : '○ Pending';
+    d.innerHTML = `<div class="dot ${dot}"></div>
+      <div style="flex:1;font-size:13px">${esc(t.name)}</div>
+      <div style="font-size:11px;color:var(--tx3)">${lbl}</div>`;
+    ul.appendChild(d);
+  });
+
+  // Update streak
+  S.streak++;
+  saveState();
+  document.getElementById('h-streak').textContent = S.streak;
+  show('summary');
+}
+
+/* ══════════════════════════════════════════════════════
+   PARTICLES
+══════════════════════════════════════════════════════ */
+function spawnParticles() {
+  const colors = ['#c9a227','#7b2fff','#00e5ff','#00e676','#ff6b6b','#ffffff','#e8c040'];
+  const cx = window.innerWidth/2, cy = window.innerHeight/2;
+  for (let i = 0; i < 50; i++) {
+    const p = document.createElement('div');
+    p.className = 'particle';
+    const sz = Math.random()*10+4;
+    const angle = Math.random()*Math.PI*2;
+    const dist  = Math.random()*320+80;
+    const col   = colors[~~(Math.random()*colors.length)];
+    p.style.cssText = `
+      left:${cx}px; top:${cy}px;
+      width:${sz}px; height:${sz}px;
+      background:${col};
+      --dx:${Math.cos(angle)*dist}px;
+      --dy:${Math.sin(angle)*dist-90}px;
+      --dur:${Math.random()*0.7+1}s;
+      animation-delay:${Math.random()*0.25}s;
+      box-shadow:0 0 ${sz}px ${col};
+    `;
+    document.body.appendChild(p);
+    setTimeout(() => p.remove(), 2200);
+  }
+}
+
+/* ══════════════════════════════════════════════════════
+   PERSISTENCE
+══════════════════════════════════════════════════════ */
+function saveState() {
+  localStorage.setItem('pq_streak', S.streak);
+  localStorage.setItem('pq_xp',     S.xp);
+  localStorage.setItem('pq_day',    new Date().toDateString());
+}
+
+function loadState() {
+  const day   = localStorage.getItem('pq_day');
+  const today = new Date().toDateString();
+  const yest  = new Date(Date.now()-86400000).toDateString();
+  S.xp     = +(localStorage.getItem('pq_xp')     || 0);
+  S.streak = (day===yest||day===today) ? +(localStorage.getItem('pq_streak')||0) : 0;
+  document.getElementById('h-streak').textContent = S.streak;
+  document.getElementById('h-xp').textContent     = S.xp;
+}
+
+/* ══════════════════════════════════════════════════════
+   NEXT TASK
+══════════════════════════════════════════════════════ */
+function nextTask() {
+  const next = S.tasks.findIndex((t,i) => i > S.curIdx && !t.status);
+  if (next !== -1) { getCtx(); startTimer(next); }
+  else showSummary();
+}
+
+/* ══════════════════════════════════════════════════════
+   INIT
+══════════════════════════════════════════════════════ */
+function init() {
+  initStars();
+  initStarPicker();
+  loadState();
+
+  /* Add task */
+  const addTask = () => {
+    const inp = document.getElementById('t-input');
+    const name = inp.value.trim(); if (!name) { inp.focus(); return; }
+    const time = +document.getElementById('t-time').value;
+    insertSorted({ name, priority: S.starPick, time, status: null });
+    inp.value = ''; inp.focus();
+    renderTasks();
+  };
+  document.getElementById('add-btn').addEventListener('click', addTask);
+  document.getElementById('t-input').addEventListener('keydown', e => { if (e.key==='Enter') addTask(); });
+
+  /* Begin session */
+  document.getElementById('begin-btn').addEventListener('click', () => {
+    getCtx();
+    S.focusSec = 0;
+    S.tasks.forEach(t => t.status = null);
+    startTimer(0);
+  });
+
+  /* Timer controls */
+  document.getElementById('pause-btn').addEventListener('click', () => {
+    S.paused = !S.paused;
+    document.getElementById('pause-btn').textContent = S.paused ? '▶ Resume' : '⏸ Pause';
+    if (S.paused) stopAmbient(); else if (S.sound) playAmbient();
+  });
+  document.getElementById('done-btn').addEventListener('click', () => {
+    clearInterval(S.timer); stopAmbient(); playComplete(); onTaskDone();
+  });
+  document.getElementById('skip-btn').addEventListener('click', skipTask);
+
+  /* Sound toggle */
+  document.getElementById('snd-btn').addEventListener('click', () => {
+    S.sound = !S.sound;
+    document.getElementById('snd-btn').textContent = S.sound ? '🔊' : '🔇';
+    if (!S.sound) stopAmbient(); else if (!S.paused) playAmbient();
+  });
+
+  /* Crate */
+  document.getElementById('crate').addEventListener('click', openCrate);
+
+  /* Reward nav */
+  document.getElementById('next-btn').addEventListener('click', nextTask);
+  document.getElementById('finish-btn').addEventListener('click', showSummary);
+
+  /* Reflection */
+  document.getElementById('retry-btn').addEventListener('click', () => {
+    S.skipPending = false;
+    getCtx(); startTimer(S.curIdx);
+  });
+  document.getElementById('continue-btn').addEventListener('click', () => {
+    if (S.skipPending) {
+      S.tasks[S.curIdx].status = 'skip';
+      S.skipPending = false;
+    }
+    const next = S.tasks.findIndex((t,i) => i > S.curIdx && !t.status);
+    if (next !== -1) { getCtx(); startTimer(next); }
+    else showSummary();
+  });
+
+  /* New day */
+  document.getElementById('newday-btn').addEventListener('click', () => {
+    S.tasks = []; S.curIdx = 0; S.focusSec = 0;
+    document.getElementById('h-xp').textContent     = S.xp;
+    document.getElementById('h-streak').textContent = S.streak;
+    renderTasks(); show('home');
+  });
+
+  renderTasks();
+}
+
+document.addEventListener('DOMContentLoaded', init);
+</script>
+</body>
+</html>
